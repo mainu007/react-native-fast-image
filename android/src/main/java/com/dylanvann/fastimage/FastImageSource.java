@@ -7,16 +7,19 @@ import android.text.TextUtils;
 
 import com.bumptech.glide.load.model.GlideUrl;
 import com.bumptech.glide.load.model.Headers;
-import com.facebook.react.views.imagehelper.ImageSource;
 
 import javax.annotation.Nullable;
 
-public class FastImageSource extends ImageSource {
+public class FastImageSource {
     private static final String DATA_SCHEME = "data";
     private static final String LOCAL_RESOURCE_SCHEME = "res";
     private static final String ANDROID_RESOURCE_SCHEME = "android.resource";
     private static final String ANDROID_CONTENT_SCHEME = "content";
     private static final String LOCAL_FILE_SCHEME = "file";
+
+    private final String mSource;
+    private final double mWidth;
+    private final double mHeight;
     private final Headers mHeaders;
     private Uri mUri;
 
@@ -41,20 +44,23 @@ public class FastImageSource extends ImageSource {
     }
 
     public FastImageSource(Context context, String source) {
-        this(context, source, null);
+        this(context, source, null, 0.0d, 0.0d);
     }
 
     public FastImageSource(Context context, String source, @Nullable Headers headers) {
-        this(context, source, 0.0d, 0.0d, headers);
+        this(context, source, headers, 0.0d, 0.0d);
     }
 
-    public FastImageSource(Context context, String source, double width, double height, @Nullable Headers headers) {
-        super(context, source, width, height);
+    public FastImageSource(Context context, String source, @Nullable Headers headers, double width, double height) {
+        mSource = source;
+        mWidth = width;
+        mHeight = height;
         mHeaders = headers == null ? Headers.DEFAULT : headers;
-        mUri = super.getUri();
+
+        mUri = Uri.parse(source);
 
         if (isResource() && TextUtils.isEmpty(mUri.toString())) {
-            throw new Resources.NotFoundException("Local Resource Not Found. Resource: '" + getSource() + "'.");
+            throw new Resources.NotFoundException("Local Resource Not Found. Resource: '" + source + "'.");
         }
 
         if (isLocalResourceUri(mUri)) {
@@ -63,7 +69,6 @@ public class FastImageSource extends ImageSource {
             mUri = Uri.parse(mUri.toString().replace("res:/", ANDROID_RESOURCE_SCHEME + "://" + context.getPackageName() + "/"));
         }
     }
-
 
     public boolean isBase64Resource() {
         return mUri != null && FastImageSource.isBase64Uri(mUri);
@@ -83,10 +88,10 @@ public class FastImageSource extends ImageSource {
 
     public Object getSourceForLoad() {
         if (isContentUri()) {
-            return getSource();
+            return mSource;
         }
         if (isBase64Resource()) {
-            return getSource();
+            return mSource;
         }
         if (isResource()) {
             return getUri();
@@ -97,7 +102,6 @@ public class FastImageSource extends ImageSource {
         return getGlideUrl();
     }
 
-    @Override
     public Uri getUri() {
         return mUri;
     }
@@ -108,5 +112,17 @@ public class FastImageSource extends ImageSource {
 
     public GlideUrl getGlideUrl() {
         return new GlideUrl(getUri().toString(), getHeaders());
+    }
+
+    public String getSource() {
+        return mSource;
+    }
+
+    public double getWidth() {
+        return mWidth;
+    }
+
+    public double getHeight() {
+        return mHeight;
     }
 }
